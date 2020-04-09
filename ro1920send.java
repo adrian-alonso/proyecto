@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.Scanner;
+import send.*;
 
 public class ro1920send {
   public static void main(String[] args) {
@@ -11,22 +12,24 @@ public class ro1920send {
       int dest_port = Integer.parseInt(args[2]);
       String emulator_IP = args[3];
       int emulator_port = Integer.parseInt(args[4]);
+      send.send(input_file, dest_IP, dest_port, emulator_IP, emulator_port);
 
-      try {
-        Scanner archivo = new Scanner(new File(input_file));
-        while (archivo.hasNextLine()) {
-          //System.out.println(archivo.nextLine());
-          
-        }
-
-      } catch(Exception e) {
-        System.out.println("Archivo incorrecto.");
-      }
     } else {
       System.out.println("Error de sintaxis. El formato introducido debe ser: ro1920send input_file dest_IP dest_port emulator_IP emulator_port");
 
     }
     return;
   }
+
+  /*public static String convertByteToHex(byte[] bytes){
+    StringBuilder result = new StringBuilder();
+
+    for (byte temp : bytes){
+      int decimal = (int) temp & 0xff;
+      String hex = Integer.toHexString(decimal);
+      result.append(hex);
+    }
+    return result.toString();
+  }*/
 
 }
