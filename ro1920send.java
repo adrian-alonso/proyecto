@@ -21,15 +21,4 @@ public class ro1920send {
     return;
   }
 
-  /*public static String convertByteToHex(byte[] bytes){
-    StringBuilder result = new StringBuilder();
-
-    for (byte temp : bytes){
-      int decimal = (int) temp & 0xff;
-      String hex = Integer.toHexString(decimal);
-      result.append(hex);
-    }
-    return result.toString();
-  }*/
-
 }
