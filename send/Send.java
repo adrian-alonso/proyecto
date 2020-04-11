@@ -30,9 +30,10 @@ public class Send {
       }else{
         exceed_size = true;
       }
-      System.out.println(exceed_size);
+      System.out.println("Tamaño maximo de paquete excedido: " + exceed_size);
       int cont = 0;
       byte[] text_bytes;
+      //Leemos el archivo y enviamos los paquetes
       for (int i=0; i<input_file_bytes.length; i=i+1466) {
         if(input_file_bytes.length-(1466*cont) < 1466){
           text_bytes = new byte[input_file_bytes.length-(1466*cont)];
@@ -42,10 +43,10 @@ public class Send {
           System.arraycopy(input_file_bytes, i, text_bytes, 0, 1466);
         }
         String text = new String(text_bytes);
-        System.out.println(text);
+        //System.out.println(text);
         cont++;
         try {
-          file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes);
+          String response = file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes);
         } catch(SocketTimeoutException eSocket) {
           System.out.println("\nTimeout\n");
         }
@@ -104,7 +105,7 @@ public class Send {
     return data_text;
   }
 
-  private void sendPacket(String emulator_IP, int emulator_port, byte[] ip, byte[] port, byte[] text) throws Exception{
+  private String sendPacket(String emulator_IP, int emulator_port, byte[] ip, byte[] port, byte[] text) throws Exception{
     DatagramSocket datagramSocket = new DatagramSocket();
 
     byte[] outData = ByteBuffer.allocate(1472).put(ip).put(port).put(text).array();
@@ -112,7 +113,7 @@ public class Send {
     DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
     datagramSocket.send(outPacket);
 
-    int time = 5000;
+    int time = 10000;
     byte[] inData = new byte[1472];
     datagramSocket.setSoTimeout(time);
     DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
@@ -120,9 +121,9 @@ public class Send {
     //byte[] inText = inData.getData();
     datagramSocket.close();
 
-    String file = new String(inData);
+    String response = new String(inData);
 
-    return;
+    return response;
   }
 
   /*public static String convertByteToHex(byte[] bytes){
