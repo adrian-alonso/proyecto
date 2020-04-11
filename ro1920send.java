@@ -1,5 +1,4 @@
 import java.io.*;
-import java.util.Scanner;
 import send.*;
 
 public class ro1920send {
@@ -12,7 +11,7 @@ public class ro1920send {
       int dest_port = Integer.parseInt(args[2]);
       String emulator_IP = args[3];
       int emulator_port = Integer.parseInt(args[4]);
-      send.send(input_file, dest_IP, dest_port, emulator_IP, emulator_port);
+      Send.send(input_file, dest_IP, dest_port, emulator_IP, emulator_port);
 
     } else {
       System.out.println("Error de sintaxis. El formato introducido debe ser: ro1920send input_file dest_IP dest_port emulator_IP emulator_port");
