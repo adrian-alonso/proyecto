@@ -35,12 +35,12 @@ public class Send {
       byte[] text_bytes;
       //Leemos el archivo y enviamos los paquetes
       for (int i=0; i<input_file_bytes.length; i=i+1466) {
-        if(input_file_bytes.length-(1466*cont) < 1466){
-          text_bytes = new byte[input_file_bytes.length-(1466*cont)];
-          System.arraycopy(input_file_bytes, i, text_bytes, 0, input_file_bytes.length-(1466*cont));
-        }else{
+        if(input_file_bytes.length-(1466*cont) > 1466){
           text_bytes = new byte[1466];
           System.arraycopy(input_file_bytes, i, text_bytes, 0, 1466);
+        }else{
+          text_bytes = new byte[input_file_bytes.length-(1466*cont)];
+          System.arraycopy(input_file_bytes, i, text_bytes, 0, input_file_bytes.length-(1466*cont));
         }
         String text = new String(text_bytes);
         //System.out.println(text);
@@ -86,7 +86,24 @@ public class Send {
   }
 
   private byte[] getFile(String file_name) throws Exception{
-    Scanner file = new Scanner(new File(file_name));
+    /*File file = new File(file_name);
+    InputStream data = new BufferedInputStream(new FileInputStream(file));
+    byte[] data_text = new byte[file_name.length()];
+    int numRead = data.read(data_text);*/
+
+    //BufferedReaded file = new BufferedReaded(new OutputStreamWriter(new FileOutputStream(file_name),
+    //readed_text.append("DLE");
+    //byte[] data_text = readed_text.toString().getBytes(); //Convertimos los datos tipo String a bytes
+
+    File file = new File(file_name);
+    //init array with file length
+    byte[] data_text = new byte[(int) file.length()];
+
+    FileInputStream fis = new FileInputStream(file);
+    fis.read(data_text); //read file into bytes[]
+    fis.close();
+
+    /*Scanner file = new Scanner(new File(file_name));
     int line_counter = 0;
     StringBuffer readed_text = new StringBuffer();
     while (file.hasNextLine()) {
@@ -100,7 +117,7 @@ public class Send {
     //System.out.println(text);
     System.out.println("Lineas: " + line_counter);
 
-    file.close();
+    file.close();*/
 
     return data_text;
   }
@@ -113,7 +130,7 @@ public class Send {
     DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
     datagramSocket.send(outPacket);
 
-    int time = 10000;
+    int time = 5000;
     byte[] inData = new byte[1472];
     datagramSocket.setSoTimeout(time);
     DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
