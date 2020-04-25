@@ -25,31 +25,41 @@ public class Send {
       byte[] input_file_bytes = file.getFile(input_file);
       System.out.println("Bytes: " + input_file_bytes.length);
       boolean exceed_size;
-      if(input_file_bytes.length < 1467){
+      if(input_file_bytes.length < 1463){
         exceed_size = false;
       }else{
         exceed_size = true;
       }
       System.out.println("Tamaño maximo de paquete excedido: " + exceed_size);
       int cont = 0;
+      int ack_int = (int) Math.ceil(input_file_bytes.length/1462);
+      System.out.println(ack_int);
+      //byte ack = Byte.parseByte("00000110");
+      //byte[] ack_packet = new byte[5];
       byte[] text_bytes;
+      byte[] packet;
       //Leemos el archivo y enviamos los paquetes
-      for (int i=0; i<input_file_bytes.length; i=i+1466) {
-        if(input_file_bytes.length-(1466*cont) > 1466){
-          text_bytes = new byte[1466];
-          System.arraycopy(input_file_bytes, i, text_bytes, 0, 1466);
+      for (int i=0; i<input_file_bytes.length; i=i+1462) {
+        if(input_file_bytes.length-(1462*cont) > 1462){
+          text_bytes = new byte[1462];
+          System.arraycopy(input_file_bytes, i, text_bytes, 0, 1462);
         }else{
-          text_bytes = new byte[input_file_bytes.length-(1466*cont)];
-          System.arraycopy(input_file_bytes, i, text_bytes, 0, input_file_bytes.length-(1466*cont));
+          text_bytes = new byte[input_file_bytes.length-(1462*cont)];
+          System.arraycopy(input_file_bytes, i, text_bytes, 0, input_file_bytes.length-(1462*cont));
         }
         String text = new String(text_bytes);
         //System.out.println(text);
+
+        byte[] ack_num = ByteBuffer.allocate(4).putInt(ack_int).array();
+        int intprueba = ((ack_num[0] & 0xFF) << 24) | ((ack_num[1] & 0xFF) << 16) | ((ack_num[2] & 0xFF) << 8) | ((ack_num[3] & 0xFF) <<0);
+        System.out.println(intprueba);
         cont++;
         try {
-          String response = file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes);
+          String response = file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes, ack_num);
         } catch(SocketTimeoutException eSocket) {
           System.out.println("\nTimeout\n");
         }
+        ack_int = ack_int-1;
       }
       //String result = convertByteToHex(data);
       //System.out.println(result);
@@ -122,23 +132,43 @@ public class Send {
     return data_text;
   }
 
-  private String sendPacket(String emulator_IP, int emulator_port, byte[] ip, byte[] port, byte[] text) throws Exception{
+  private String sendPacket(String emulator_IP, int emulator_port, byte[] ip, byte[] port, byte[] text, byte[] ack_num) throws Exception{
     DatagramSocket datagramSocket = new DatagramSocket();
 
-    byte[] outData = ByteBuffer.allocate(1472).put(ip).put(port).put(text).array();
-    InetAddress emulatorAddress = InetAddress.getByName(emulator_IP);
-    DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
-    datagramSocket.send(outPacket);
+    int ack_int_recv;
+    int ack_int = ((ack_num[0] & 0xFF) << 24) | ((ack_num[1] & 0xFF) << 16) | ((ack_num[2] & 0xFF) << 8) | ((ack_num[3] & 0xFF) <<0);
+    byte[] ack_recv;
+    do {
+      int length = ip.length+port.length+ack_num.length+text.length;
+      byte[] outData = ByteBuffer.allocate(length).put(ip).put(port).put(ack_num).put(text).array();
+      InetAddress emulatorAddress = InetAddress.getByName(emulator_IP);
+      DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
+      datagramSocket.send(outPacket);
+      System.out.println("Sent.");
 
-    int time = 5000;
-    byte[] inData = new byte[1472];
-    datagramSocket.setSoTimeout(time);
-    DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
-    datagramSocket.receive(inPacket);
-    //byte[] inText = inData.getData();
+      int time = 5000;
+      byte[] inData = new byte[10];
+      ack_recv = new byte[4];
+      byte[] info_recv = new byte[6];
+      datagramSocket.setSoTimeout(time);
+      DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
+      datagramSocket.receive(inPacket);
+      inData = inPacket.getData();
+      System.arraycopy(inData, 0, info_recv, 0, 6);
+      System.arraycopy(inData, 6, ack_recv, 0, 4);
+      String ack_recv_data = new String (ack_recv);
+      ack_int_recv = ((ack_recv[0] & 0xFF) << 24) | ((ack_recv[1] & 0xFF) << 16) | ((ack_recv[2] & 0xFF) << 8) | ((ack_recv[3] & 0xFF) <<0);
+
+      //ack_int_recv = ByteBuffer.wrap(ack_recv).getInt();
+      System.out.println("Ack: "+ ack_int_recv+" : "+ack_int);
+      //ack_int_recv = Integer.parseInt(ack_recv_data);
+      //byte[] inText = inData.getData();
+    } while (ack_int_recv!=ack_int);
+
     datagramSocket.close();
 
-    String response = new String(inData);
+    //String response = new String(inData);
+    String response = "OK.";
 
     return response;
   }

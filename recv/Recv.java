@@ -15,22 +15,23 @@ public class Recv {
     try {
       DatagramSocket datagramSocket = new DatagramSocket(3000);
       byte[] packet = getFile.receivePacket(datagramSocket); //Archivo recibido
+      datagramSocket.close();
       byte[] data = new byte[packet.length-6];
-      int j = 0;
+      /*int j = 0;
       for(int i=6; i<packet.length; i++){
         data[j] = packet[i];
         j++;
-      }
+      }*/
       File file = new File(output_file);
-      BufferedWriter bWriter = new BufferedWriter(new FileWriter(output_file));
-      //BufferedWriter bWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output_file), "UTF-8"));
+      //BufferedWriter fileWriter = new BufferedWriter(new FileWriter(output_file));
+      //BufferedWriter fileWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output_file), "UTF-8"));
       //PrintWriter out = new PrintWriter(bWriter);
-      String texto = new String(data);
+      //String texto = new String(packet);
       //System.out.println(texto);
       //out.println(texto);
-      bWriter.write(texto);
-      bWriter.close();
-      datagramSocket.close();
+      FileOutputStream fileWriter = new FileOutputStream(file);
+      fileWriter.write(packet);
+      fileWriter.close();
     } catch(Exception e) {
       System.out.println(e);
     }
@@ -45,26 +46,51 @@ public class Recv {
     DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
     datagramSocket.send(outPacket);*/
 
-
-    //while() {
-      datagramSocket.setSoTimeout(5000);
-      byte[] inData = new byte[1472];
+    byte[] inData = new byte[1472];
+    byte[] data;
+    byte[] info_send = new byte[6];
+    byte[] ack_send = new byte[4];
+    int ack_received;
+    int ack_prev = -1;
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+     do {
+      //datagramSocket.setSoTimeout(5000);
       DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
       datagramSocket.receive(inPacket);
-      String received = new String(inData);
+      //inData = new byte[inPacket.getLength()];
+      inData = inPacket.getData();
+      String received = new String (inData, 0, inPacket.getLength());
       System.out.println(received);
+      System.out.println(inPacket.getLength());
+      System.arraycopy(inData, 0, info_send, 0, 6);
+      System.arraycopy(inData, 6, ack_send, 0, 4);
+      data = new byte[inPacket.getLength()-10];
+      System.arraycopy(inData, 10, data, 0, inPacket.getLength()-10);
+
+      //System.out.println(ByteBuffer.wrap(ack_send).getInt());
+      System.out.println(ack_send);
+      ack_received = ((ack_send[0] & 0xFF) << 24) | ((ack_send[1] & 0xFF) << 16) | ((ack_send[2] & 0xFF) << 8) | ((ack_send[3] & 0xFF) <<0);
+      System.out.println(ack_received);
+      if (ack_prev!=ack_received){
+        bos.write(data, 0, data.length);
+      }
 
       InetAddress emulatorAddress = inPacket.getAddress();
       int emulatorPort = inPacket.getPort();
       System.out.println(emulatorPort);
-      byte[] outData = "ack".getBytes();
+      byte[] outData = new byte[10];
+      System.arraycopy(info_send, 0, outData, 0, 6);
+      System.arraycopy(ack_send, 0, outData, 6, 4);
       DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulatorPort);
       datagramSocket.send(outPacket);
-    //}
+      System.out.println("Sent.");
+      ack_prev = ack_received;
+    } while(ack_received!=0);
 
     //String file = new String(inData);
 
-    return inData;
+    byte[] output = bos.toByteArray();
+    return output;
   }
 
 }
