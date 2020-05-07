@@ -4,6 +4,8 @@ import java.util.Scanner;
 import java.io.*;
 import java.nio.*;
 import java.net.*;
+import java.util.Date;
+import java.sql.Timestamp;
 //import java.lang.System;
 
 public class Send {
@@ -25,37 +27,43 @@ public class Send {
       byte[] input_file_bytes = file.getFile(input_file);
       System.out.println("Bytes: " + input_file_bytes.length);
       boolean exceed_size;
-      if(input_file_bytes.length < 1463){
+      if(input_file_bytes.length < 1457){
         exceed_size = false;
       }else{
         exceed_size = true;
       }
       System.out.println("Tamaño maximo de paquete excedido: " + exceed_size);
       int cont = 0;
-      int ack_int = (int) Math.ceil(input_file_bytes.length/1462);
+      int ack_int = (int) Math.ceil(input_file_bytes.length/1458);
       System.out.println(ack_int);
       //byte ack = Byte.parseByte("00000110");
       //byte[] ack_packet = new byte[5];
       byte[] text_bytes;
       byte[] packet;
       //Leemos el archivo y enviamos los paquetes
-      for (int i=0; i<input_file_bytes.length; i=i+1462) {
-        if(input_file_bytes.length-(1462*cont) > 1462){
-          text_bytes = new byte[1462];
-          System.arraycopy(input_file_bytes, i, text_bytes, 0, 1462);
+      for (int i=0; i<input_file_bytes.length; i=i+1458) {
+        if(input_file_bytes.length-(1458*cont) > 1458){
+          text_bytes = new byte[1458];
+          System.arraycopy(input_file_bytes, i, text_bytes, 0, 1458);
         }else{
-          text_bytes = new byte[input_file_bytes.length-(1462*cont)];
-          System.arraycopy(input_file_bytes, i, text_bytes, 0, input_file_bytes.length-(1462*cont));
+          text_bytes = new byte[input_file_bytes.length-(1458*cont)];
+          System.arraycopy(input_file_bytes, i, text_bytes, 0, input_file_bytes.length-(1458*cont));
         }
         String text = new String(text_bytes);
         //System.out.println(text);
 
         byte[] ack_num = ByteBuffer.allocate(4).putInt(ack_int).array();
         int intprueba = ((ack_num[0] & 0xFF) << 24) | ((ack_num[1] & 0xFF) << 16) | ((ack_num[2] & 0xFF) << 8) | ((ack_num[3] & 0xFF) <<0);
-        System.out.println(intprueba);
+        System.out.println();
+        long time_ms_long = file.timestamp();
+        int time_ms = (int) time_ms_long;
+        byte[] time_ms_byte = ByteBuffer.allocate(4).putInt(time_ms).array();
+        int time_ms_int = ((time_ms_byte[0] & 0xFF) << 24) | ((time_ms_byte[1] & 0xFF) << 16) | ((time_ms_byte[2] & 0xFF) << 8) | ((time_ms_byte[3] & 0xFF) <<0);
+        System.out.println("Tiempo actual: " + time_ms_int);
+        System.arraycopy(time_ms_long, 0, time_ms_byte, 0, 4);
         cont++;
         try {
-          String response = file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes, ack_num);
+          String response = file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes, ack_num, time_ms_byte);
           System.out.println(response);
         } catch(SocketTimeoutException eSocket) {
           System.out.println("\nTimeout\n");
@@ -133,7 +141,7 @@ public class Send {
     return data_text;
   }
 
-  private String sendPacket(String emulator_IP, int emulator_port, byte[] ip, byte[] port, byte[] text, byte[] ack_num) throws Exception{
+  private String sendPacket(String emulator_IP, int emulator_port, byte[] ip, byte[] port, byte[] text, byte[] ack_num, byte[] time_ms) throws Exception{
     DatagramSocket datagramSocket = new DatagramSocket();
 
     int ack_int_recv;
@@ -142,8 +150,8 @@ public class Send {
     boolean timeout;
     do {
       //do{
-      int length = ip.length+port.length+ack_num.length+text.length;
-      byte[] outData = ByteBuffer.allocate(length).put(ip).put(port).put(ack_num).put(text).array();
+      int length = ip.length+port.length+ack_num.length+time_ms.length+text.length;
+      byte[] outData = ByteBuffer.allocate(length).put(ip).put(port).put(ack_num).put(time_ms).put(text).array();
       InetAddress emulatorAddress = InetAddress.getByName(emulator_IP);
       DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
       datagramSocket.send(outPacket);
@@ -180,6 +188,20 @@ public class Send {
     String response = "OK.";
 
     return response;
+  }
+
+  private long timestamp() {
+
+    Date date= new Date();
+
+    //LocalTime time = LocalTime.now(); // Gets the current time
+    long time = date.getTime();
+    System.out.println("Time in Milliseconds: " + time);
+
+    Timestamp ts = new Timestamp(time);
+    System.out.println("Current Time Stamp: " + ts);
+
+    return time;
   }
 
   /*public static String convertByteToHex(byte[] bytes){

@@ -50,7 +50,9 @@ public class Recv {
     byte[] data;
     byte[] info_send = new byte[6];
     byte[] ack_send = new byte[4];
+    byte[] time_ms_byte = new byte[4];
     int ack_received;
+    int time_ms;
     int ack_prev = -1;
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
      do {
@@ -64,13 +66,15 @@ public class Recv {
       System.out.println(inPacket.getLength());
       System.arraycopy(inData, 0, info_send, 0, 6);
       System.arraycopy(inData, 6, ack_send, 0, 4);
-      data = new byte[inPacket.getLength()-10];
-      System.arraycopy(inData, 10, data, 0, inPacket.getLength()-10);
+      System.arraycopy(inData, 10, time_ms_byte, 0, 4);
+      data = new byte[inPacket.getLength()-14];
+      System.arraycopy(inData, 14, data, 0, inPacket.getLength()-14);
 
       //System.out.println(ByteBuffer.wrap(ack_send).getInt());
       System.out.println(ack_send);
       ack_received = ((ack_send[0] & 0xFF) << 24) | ((ack_send[1] & 0xFF) << 16) | ((ack_send[2] & 0xFF) << 8) | ((ack_send[3] & 0xFF) <<0);
       System.out.println(ack_received);
+      time_ms = ((time_ms_byte[0] & 0xFF) << 24) | ((time_ms_byte[1] & 0xFF) << 16) | ((time_ms_byte[2] & 0xFF) << 8) | ((time_ms_byte[3] & 0xFF) <<0);
       if (ack_prev!=ack_received){
         bos.write(data, 0, data.length);
       }
