@@ -13,7 +13,7 @@ public class Recv {
     System.out.println("File: " + output_file + "\nPort: " + listen_port);
 
     try {
-      DatagramSocket datagramSocket = new DatagramSocket(3000);
+      DatagramSocket datagramSocket = new DatagramSocket(listen_port);
       byte[] packet = getFile.receivePacket(datagramSocket); //Archivo recibido
       datagramSocket.close();
       byte[] data = new byte[packet.length-6];
@@ -59,8 +59,8 @@ public class Recv {
       datagramSocket.receive(inPacket);
       //inData = new byte[inPacket.getLength()];
       inData = inPacket.getData();
-      String received = new String (inData, 0, inPacket.getLength());
-      System.out.println(received);
+      //String received = new String (inData, 0, inPacket.getLength());
+      //System.out.println(received);
       System.out.println(inPacket.getLength());
       System.arraycopy(inData, 0, info_send, 0, 6);
       System.arraycopy(inData, 6, ack_send, 0, 4);

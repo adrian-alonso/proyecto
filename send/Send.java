@@ -56,6 +56,7 @@ public class Send {
         cont++;
         try {
           String response = file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes, ack_num);
+          System.out.println(response);
         } catch(SocketTimeoutException eSocket) {
           System.out.println("\nTimeout\n");
         }
@@ -138,7 +139,9 @@ public class Send {
     int ack_int_recv;
     int ack_int = ((ack_num[0] & 0xFF) << 24) | ((ack_num[1] & 0xFF) << 16) | ((ack_num[2] & 0xFF) << 8) | ((ack_num[3] & 0xFF) <<0);
     byte[] ack_recv;
+    boolean timeout;
     do {
+      //do{
       int length = ip.length+port.length+ack_num.length+text.length;
       byte[] outData = ByteBuffer.allocate(length).put(ip).put(port).put(ack_num).put(text).array();
       InetAddress emulatorAddress = InetAddress.getByName(emulator_IP);
@@ -146,24 +149,30 @@ public class Send {
       datagramSocket.send(outPacket);
       System.out.println("Sent.");
 
-      int time = 5000;
+      int time = 50;
       byte[] inData = new byte[10];
       ack_recv = new byte[4];
       byte[] info_recv = new byte[6];
+
       datagramSocket.setSoTimeout(time);
       DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
-      datagramSocket.receive(inPacket);
+      try{
+        datagramSocket.receive(inPacket);
+      }catch (SocketTimeoutException e) {
+        timeout=true;
+      }
       inData = inPacket.getData();
       System.arraycopy(inData, 0, info_recv, 0, 6);
       System.arraycopy(inData, 6, ack_recv, 0, 4);
       String ack_recv_data = new String (ack_recv);
       ack_int_recv = ((ack_recv[0] & 0xFF) << 24) | ((ack_recv[1] & 0xFF) << 16) | ((ack_recv[2] & 0xFF) << 8) | ((ack_recv[3] & 0xFF) <<0);
-
+      timeout=false;
       //ack_int_recv = ByteBuffer.wrap(ack_recv).getInt();
       System.out.println("Ack: "+ ack_int_recv+" : "+ack_int);
       //ack_int_recv = Integer.parseInt(ack_recv_data);
       //byte[] inText = inData.getData();
-    } while (ack_int_recv!=ack_int);
+    //  }while(timeout=true);
+  } while ((ack_int_recv!=ack_int) || (timeout==true));
 
     datagramSocket.close();
 
