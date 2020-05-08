@@ -27,9 +27,11 @@ public class Send {
       System.out.print("IP de destino (hex): ");
       hex.byteToHex(dest_IP_bytes);
 
+      //Obtenemos los datos del fichero
       byte[] input_file_bytes = file.getFile(input_file);
       System.out.println("\nBytes a enviar: " + input_file_bytes.length);
 
+      //Comprobamos el tamaño
       boolean exceed_size;
       if(input_file_bytes.length < 1463){
         exceed_size = false;
@@ -43,8 +45,10 @@ public class Send {
       System.out.println("Numero de paquetes a enviar: " + ack_int + '\n');
       byte[] text_bytes;
       byte[] packet;
+
       //Leemos el archivo y enviamos los paquetes
       for (int i=0; i<input_file_bytes.length; i=i+1462) {
+        //Datos del fichero para los paquetes
         if(input_file_bytes.length-(1462*cont) > 1462){
           text_bytes = new byte[1462];
           System.arraycopy(input_file_bytes, i, text_bytes, 0, 1462);
@@ -54,15 +58,16 @@ public class Send {
         }
         String text = new String(text_bytes);
 
+        //ACK
         byte[] ack_num = ByteBuffer.allocate(4).putInt(ack_int).array();
         int intprueba = ((ack_num[0] & 0xFF) << 24) | ((ack_num[1] & 0xFF) << 16) | ((ack_num[2] & 0xFF) << 8) | ((ack_num[3] & 0xFF) <<0);
 
         cont++;
+        //Enviamos el paquete
         try {
           file.sendPacket(emulator_IP, emulator_port, dest_IP_bytes, dest_port_bytes, text_bytes, ack_num);
-          //System.out.print('\n' + response);
         } catch(Exception eSocket) {
-          System.out.println("\n" + eSocket + "\n");
+          System.out.println("\nExcepcion: \n" + eSocket + "\n");
         }
         ack_int = ack_int-1;
       }
@@ -122,11 +127,10 @@ public class Send {
   private byte[] getFile(String file_name) throws Exception{
 
     File file = new File(file_name);
-    //init array with file length
     byte[] data_text = new byte[(int) file.length()];
 
     FileInputStream fis = new FileInputStream(file);
-    fis.read(data_text); //read file into bytes[]
+    fis.read(data_text); //leemos archivo en bytes[]
     fis.close();
 
     return data_text;
@@ -142,8 +146,11 @@ public class Send {
     boolean timeout;
 
     do {
+      //Creamos paquete de datos
       int length = ip.length+port.length+ack_num.length+text.length;
       byte[] outData = ByteBuffer.allocate(length).put(ip).put(port).put(ack_num).put(text).array();
+
+      //Creamos y enviamos el datagram packet
       InetAddress emulatorAddress = InetAddress.getByName(emulator_IP);
       DatagramPacket outPacket = new DatagramPacket(outData, outData.length, emulatorAddress, emulator_port);
       datagramSocket.send(outPacket);
@@ -152,6 +159,7 @@ public class Send {
       ack_recv = new byte[4];
       byte[] info_recv = new byte[6];
 
+      //Establecemos timeout y recibimos el asentimiento del receptor
       datagramSocket.setSoTimeout(time);
       DatagramPacket inPacket = new DatagramPacket(inData, inData.length);
       try{
@@ -161,6 +169,7 @@ public class Send {
         System.out.print("\rTimeout.");
       }
 
+      //Sacamos los datos del paquete recibido
       inData = inPacket.getData();
       System.arraycopy(inData, 0, info_recv, 0, 6);
       System.arraycopy(inData, 6, ack_recv, 0, 4);
@@ -169,7 +178,7 @@ public class Send {
 
       timeout=false;
 
-    } while ((ack_int_recv!=ack_int) || (timeout==true));
+    } while ((ack_int_recv!=ack_int) || (timeout==true)); //Comprobamos el ack y el timeout por si es necesario reenviar
 
     datagramSocket.close();
 
